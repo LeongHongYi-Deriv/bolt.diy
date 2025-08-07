@@ -40,7 +40,7 @@ function parseCookies(cookieHeader: string): Record<string, string> {
 
 async function chatAction({ context, request }: ActionFunctionArgs) {
   const { messages, files, promptId, contextOptimization, supabase, chatMode, designScheme, maxLLMSteps } =
-    await request.json<{
+    (await request.json()) as {
       messages: Messages;
       files: any;
       promptId?: string;
@@ -56,7 +56,7 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
         };
       };
       maxLLMSteps: number;
-    }>();
+    };
 
   const cookieHeader = request.headers.get('Cookie');
   const apiKeys = JSON.parse(parseCookies(cookieHeader || '').apiKeys || '{}');
@@ -297,19 +297,19 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
         } satisfies ProgressAnnotation);
 
         const result = await streamText({
-          messages: [...processedMessages],
+          messages: processedMessages,
           env: context.cloudflare?.env,
           options,
           apiKeys,
-          files,
+          files: filteredFiles,
           providerSettings,
           promptId,
           contextOptimization,
           contextFiles: filteredFiles,
-          chatMode,
-          designScheme,
           summary,
           messageSliceId,
+          chatMode,
+          designScheme,
         });
 
         (async () => {
