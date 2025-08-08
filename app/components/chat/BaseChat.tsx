@@ -310,6 +310,58 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       input.click();
     };
 
+    const handleFigmaImport = (jsonData: any, purpose: 'modify-current' | 'add-new', navigationAction?: string) => {
+      const frameName = jsonData.name || 'Figma Design';
+      const dimensions = jsonData.absoluteBoundingBox
+        ? ` (${jsonData.absoluteBoundingBox.width}x${jsonData.absoluteBoundingBox.height}px)`
+        : '';
+
+      const jsonString = JSON.stringify(jsonData, null, 2);
+
+      let prompt = '';
+
+      if (purpose === 'modify-current') {
+        prompt = `Please modify the current page design using the following Figma design JSON data. Update the existing components, styling, and layout to match this new design while maintaining functionality.
+
+Design: "${frameName}"${dimensions}
+
+Here is the complete Figma design JSON data:
+
+\`\`\`json
+${jsonString}
+\`\`\`
+
+Please refer to this JSON data for all design details and update the current page accordingly.`;
+      } else {
+        prompt = `Please add a new page to the application using the following Figma design JSON data. This new page should be accessible through navigation from the current page.
+
+Navigation Action: ${navigationAction}
+New Page Design: "${frameName}"${dimensions}
+
+Here is the complete Figma design JSON data for the new page:
+
+\`\`\`json
+${jsonString}
+\`\`\`
+
+Please:
+1. Create the new page components based on this JSON data
+2. Add routing to navigate to this new page
+3. Implement the navigation action: "${navigationAction}"
+4. Ensure proper navigation flow between pages`;
+      }
+
+      // Send the message with the Figma design data
+      if (sendMessage) {
+        const syntheticEvent = {
+          type: 'submit',
+          preventDefault: () => {},
+        } as React.UIEvent;
+
+        sendMessage(syntheticEvent, prompt);
+      }
+    };
+
     const handlePaste = async (e: React.ClipboardEvent) => {
       const items = e.clipboardData?.items;
 
@@ -459,6 +511,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                   qrModalOpen={qrModalOpen}
                   setQrModalOpen={setQrModalOpen}
                   handleFileUpload={handleFileUpload}
+                  onFigmaImport={handleFigmaImport}
                   chatMode={chatMode}
                   setChatMode={setChatMode}
                   designScheme={designScheme}
