@@ -1,6 +1,6 @@
 import type { Change } from 'diff';
 
-export type ActionType = 'file' | 'shell' | 'supabase';
+export type ActionType = 'file' | 'shell' | 'start' | 'build' | 'supabase' | 'screen' | 'navigation' | 'component';
 
 export interface BaseAction {
   content: string;
@@ -30,7 +30,44 @@ export interface SupabaseAction extends BaseAction {
   projectId?: string;
 }
 
-export type BoltAction = FileAction | ShellAction | StartAction | BuildAction | SupabaseAction;
+export interface ScreenAction extends BaseAction {
+  type: 'screen';
+  screenId: string;
+  screenType: 'page' | 'modal' | 'drawer' | 'component';
+  screenName: string;
+  parentScreen?: string;
+  navigationTrigger?: string;
+  dependencies?: string[];
+  props?: Record<string, any>;
+}
+
+export interface NavigationAction extends BaseAction {
+  type: 'navigation';
+  fromScreen: string;
+  toScreen: string;
+  trigger: string;
+  navigationType: 'push' | 'replace' | 'modal' | 'drawer';
+  params?: Record<string, any>;
+}
+
+export interface ComponentAction extends BaseAction {
+  type: 'component';
+  componentName: string;
+  componentType: 'shared' | 'screen-specific' | 'layout';
+  usedByScreens?: string[];
+  exports?: string[];
+  imports?: string[];
+}
+
+export type BoltAction =
+  | FileAction
+  | ShellAction
+  | StartAction
+  | BuildAction
+  | SupabaseAction
+  | ScreenAction
+  | NavigationAction
+  | ComponentAction;
 
 export type BoltActionData = BoltAction | BaseAction;
 
