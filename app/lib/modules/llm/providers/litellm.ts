@@ -72,6 +72,12 @@ export default class LiteLLMProvider extends BaseProvider {
       provider: 'LiteLLM',
       maxTokenAllowed: 128000,
     },
+    {
+      name: 'gpt-5',
+      label: 'GPT-5',
+      provider: 'LiteLLM',
+      maxTokenAllowed: 128000,
+    },
 
     // Next-generation GPT Models
     {

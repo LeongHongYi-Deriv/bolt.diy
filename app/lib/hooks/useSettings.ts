@@ -15,6 +15,16 @@ import {
   updateContextOptimization,
   updateEventLogs,
   updatePromptId,
+  modelDifferentiationStore,
+  summaryModelStore,
+  summaryProviderStore,
+  contextModelStore,
+  contextProviderStore,
+  updateModelDifferentiation,
+  updateSummaryModel,
+  updateSummaryProvider,
+  updateContextModel,
+  updateContextProvider,
 } from '~/lib/stores/settings';
 import { useCallback, useEffect, useState } from 'react';
 import Cookies from 'js-cookie';
@@ -59,6 +69,18 @@ export interface UseSettingsReturn {
   contextOptimizationEnabled: boolean;
   enableContextOptimization: (enabled: boolean) => void;
 
+  // Model differentiation settings
+  modelDifferentiation: boolean;
+  setModelDifferentiation: (enabled: boolean) => void;
+  summaryModel: string;
+  setSummaryModel: (model: string) => void;
+  summaryProvider: string;
+  setSummaryProvider: (provider: string) => void;
+  contextModel: string;
+  setContextModel: (model: string) => void;
+  contextProvider: string;
+  setContextProvider: (provider: string) => void;
+
   // Tab configuration
   tabConfiguration: TabWindowConfig;
   resetTabConfiguration: () => void;
@@ -79,6 +101,11 @@ export function useSettings(): UseSettingsReturn {
   const [activeProviders, setActiveProviders] = useState<ProviderInfo[]>([]);
   const contextOptimizationEnabled = useStore(enableContextOptimizationStore);
   const tabConfiguration = useStore(tabConfigurationStore);
+  const modelDifferentiation = useStore(modelDifferentiationStore);
+  const summaryModel = useStore(summaryModelStore);
+  const summaryProvider = useStore(summaryProviderStore);
+  const contextModel = useStore(contextModelStore);
+  const contextProvider = useStore(contextProviderStore);
   const [settings, setSettings] = useState<Settings>(() => {
     const storedSettings = getLocalStorage('settings');
     return {
@@ -143,6 +170,31 @@ export function useSettings(): UseSettingsReturn {
     logStore.logSystem(`Context optimization ${enabled ? 'enabled' : 'disabled'}`);
   }, []);
 
+  const setModelDifferentiation = useCallback((enabled: boolean) => {
+    updateModelDifferentiation(enabled);
+    logStore.logSystem(`Model differentiation ${enabled ? 'enabled' : 'disabled'}`);
+  }, []);
+
+  const setSummaryModel = useCallback((model: string) => {
+    updateSummaryModel(model);
+    logStore.logSystem(`Summary model updated to ${model}`);
+  }, []);
+
+  const setSummaryProvider = useCallback((provider: string) => {
+    updateSummaryProvider(provider);
+    logStore.logSystem(`Summary provider updated to ${provider}`);
+  }, []);
+
+  const setContextModel = useCallback((model: string) => {
+    updateContextModel(model);
+    logStore.logSystem(`Context model updated to ${model}`);
+  }, []);
+
+  const setContextProvider = useCallback((provider: string) => {
+    updateContextProvider(provider);
+    logStore.logSystem(`Context provider updated to ${provider}`);
+  }, []);
+
   const setTheme = useCallback(
     (theme: Settings['theme']) => {
       saveSettings({ theme });
@@ -197,6 +249,16 @@ export function useSettings(): UseSettingsReturn {
     setAutoSelectTemplate,
     contextOptimizationEnabled,
     enableContextOptimization,
+    modelDifferentiation,
+    setModelDifferentiation,
+    summaryModel,
+    setSummaryModel,
+    summaryProvider,
+    setSummaryProvider,
+    contextModel,
+    setContextModel,
+    contextProvider,
+    setContextProvider,
     setTheme,
     setLanguage,
     setNotifications,

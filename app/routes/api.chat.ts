@@ -39,24 +39,40 @@ function parseCookies(cookieHeader: string): Record<string, string> {
 }
 
 async function chatAction({ context, request }: ActionFunctionArgs) {
-  const { messages, files, promptId, contextOptimization, supabase, chatMode, designScheme, maxLLMSteps } =
-    await request.json<{
-      messages: Messages;
-      files: any;
-      promptId?: string;
-      contextOptimization: boolean;
-      chatMode: 'discuss' | 'build';
-      designScheme?: DesignScheme;
-      supabase?: {
-        isConnected: boolean;
-        hasSelectedProject: boolean;
-        credentials?: {
-          anonKey?: string;
-          supabaseUrl?: string;
-        };
+  const {
+    messages,
+    files,
+    promptId,
+    contextOptimization,
+    supabase,
+    chatMode,
+    designScheme,
+    maxLLMSteps,
+    modelDifferentiation,
+  } = await request.json<{
+    messages: Messages;
+    files: any;
+    promptId?: string;
+    contextOptimization: boolean;
+    chatMode: 'discuss' | 'build';
+    designScheme?: DesignScheme;
+    supabase?: {
+      isConnected: boolean;
+      hasSelectedProject: boolean;
+      credentials?: {
+        anonKey?: string;
+        supabaseUrl?: string;
       };
-      maxLLMSteps: number;
-    }>();
+    };
+    maxLLMSteps: number;
+    modelDifferentiation?: {
+      enabled: boolean;
+      summaryModel: string;
+      summaryProvider: string;
+      contextModel: string;
+      contextProvider: string;
+    };
+  }>();
 
   const cookieHeader = request.headers.get('Cookie');
   const apiKeys = JSON.parse(parseCookies(cookieHeader || '').apiKeys || '{}');
@@ -114,6 +130,7 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
             providerSettings,
             promptId,
             contextOptimization,
+            modelDifferentiation,
             onFinish(resp) {
               if (resp.usage) {
                 logger.debug('createSummary token usage', JSON.stringify(resp.usage));
@@ -158,6 +175,7 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
             promptId,
             contextOptimization,
             summary,
+            modelDifferentiation,
             onFinish(resp) {
               if (resp.usage) {
                 logger.debug('selectContext token usage', JSON.stringify(resp.usage));
@@ -207,8 +225,52 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
               mcpService.processToolCall(toolCall, dataStream);
             });
           },
-          onFinish: async ({ text: content, finishReason, usage }) => {
+          onFinish: async ({ text: content, finishReason, usage, response }) => {
             logger.debug('usage', JSON.stringify(usage));
+
+            // Debug: Log response object structure to understand why cost isn't showing
+            console.log('🔍 Debug - Response object:', {
+              hasResponse: !!response,
+              hasHeaders: !!response?.headers,
+              headerKeys: response?.headers ? Object.keys(response.headers) : [],
+              responseType: typeof response,
+            });
+
+            // Log LiteLLM cost information - check all possible cost-related headers
+            let costHeader = null;
+            let keySpendHeader = null;
+            const currentModel = extractPropertiesFromMessage(processedMessages[processedMessages.length - 1]).model;
+
+            if (response?.headers) {
+              costHeader = response.headers['x-litellm-response-cost'] || response.headers['X-LiteLLM-Response-Cost'];
+              keySpendHeader = response.headers['x-litellm-key-spend'];
+
+              // Log all LiteLLM headers for investigation
+              console.log(
+                '🔍 All LiteLLM headers:',
+                Object.keys(response.headers)
+                  .filter((key) => key.toLowerCase().includes('litellm'))
+                  .reduce((obj, key) => ({ ...obj, [key]: response.headers![key] }), {}),
+              );
+            }
+
+            if (costHeader) {
+              console.log(
+                `💰 LiteLLM Chat Response Cost: $${costHeader} | Model: ${currentModel} | Tokens: ${usage?.totalTokens || 'N/A'}`,
+              );
+
+              if (usage) {
+                console.log(
+                  `📊 LiteLLM Chat Response Usage: Model=${currentModel}, Prompt=${usage.promptTokens}, Completion=${usage.completionTokens}, Total=${usage.totalTokens}`,
+                );
+              }
+            } else {
+              console.log('⚠️ No x-litellm-response-cost header found in streaming response');
+
+              if (keySpendHeader) {
+                console.log(`ℹ️ Key total spend available: $${keySpendHeader} (cumulative for this API key)`);
+              }
+            }
 
             if (usage) {
               cumulativeUsage.completionTokens += usage.completionTokens || 0;

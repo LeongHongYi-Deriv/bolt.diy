@@ -21,9 +21,16 @@ export async function selectContext(props: {
   promptId?: string;
   contextOptimization?: boolean;
   summary: string;
+  modelDifferentiation?: {
+    enabled: boolean;
+    summaryModel: string;
+    summaryProvider: string;
+    contextModel: string;
+    contextProvider: string;
+  };
   onFinish?: (resp: GenerateTextResult<Record<string, CoreTool<any, any>>, never>) => void;
 }) {
-  const { messages, env: serverEnv, apiKeys, files, providerSettings, summary, onFinish } = props;
+  const { messages, env: serverEnv, apiKeys, files, providerSettings, summary, onFinish, modelDifferentiation } = props;
   let currentModel = DEFAULT_MODEL;
   let currentProvider = DEFAULT_PROVIDER.name;
   const processedMessages = messages.map((message) => {
@@ -46,6 +53,12 @@ export async function selectContext(props: {
 
     return message;
   });
+
+  // Use specific model for context selection if model differentiation is enabled
+  if (modelDifferentiation?.enabled) {
+    currentModel = modelDifferentiation.contextModel;
+    currentProvider = modelDifferentiation.contextProvider;
+  }
 
   const provider = PROVIDER_LIST.find((p) => p.name === currentProvider) || DEFAULT_PROVIDER;
   const staticModels = LLMManager.getInstance().getStaticModelListFromProvider(provider);
@@ -175,6 +188,20 @@ export async function selectContext(props: {
       providerSettings,
     }),
   });
+
+  // Log LiteLLM cost information for selectContext calls
+  if (provider.name === 'LiteLLM' && resp.response?.headers?.['x-litellm-response-cost']) {
+    const costHeader = resp.response.headers['x-litellm-response-cost'];
+    console.log(
+      `💰 LiteLLM selectContext Cost: $${costHeader} | Model: ${currentModel} | Tokens: ${resp.usage?.totalTokens || 'N/A'}`,
+    );
+
+    if (resp.usage) {
+      console.log(
+        `📊 LiteLLM selectContext Usage: Model=${currentModel}, Prompt=${resp.usage.promptTokens}, Completion=${resp.usage.completionTokens}, Total=${resp.usage.totalTokens}`,
+      );
+    }
+  }
 
   const response = resp.text;
   const updateContextBuffer = response.match(/<updateContextBuffer>([\s\S]*?)<\/updateContextBuffer>/);

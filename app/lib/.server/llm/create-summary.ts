@@ -14,9 +14,16 @@ export async function createSummary(props: {
   providerSettings?: Record<string, IProviderSetting>;
   promptId?: string;
   contextOptimization?: boolean;
+  modelDifferentiation?: {
+    enabled: boolean;
+    summaryModel: string;
+    summaryProvider: string;
+    contextModel: string;
+    contextProvider: string;
+  };
   onFinish?: (resp: GenerateTextResult<Record<string, CoreTool<any, any>>, never>) => void;
 }) {
-  const { messages, env: serverEnv, apiKeys, providerSettings, onFinish } = props;
+  const { messages, env: serverEnv, apiKeys, providerSettings, onFinish, modelDifferentiation } = props;
   let currentModel = DEFAULT_MODEL;
   let currentProvider = DEFAULT_PROVIDER.name;
   const processedMessages = messages.map((message) => {
@@ -38,6 +45,12 @@ export async function createSummary(props: {
 
     return message;
   });
+
+  // Use specific model for summary if model differentiation is enabled
+  if (modelDifferentiation?.enabled) {
+    currentModel = modelDifferentiation.summaryModel;
+    currentProvider = modelDifferentiation.summaryProvider;
+  }
 
   const provider = PROVIDER_LIST.find((p) => p.name === currentProvider) || DEFAULT_PROVIDER;
   const staticModels = LLMManager.getInstance().getStaticModelListFromProvider(provider);
@@ -186,6 +199,20 @@ Please provide a summary of the chat till now including the hitorical summary of
       providerSettings,
     }),
   });
+
+  // Log LiteLLM cost information for createSummary calls
+  if (provider.name === 'LiteLLM' && resp.response?.headers?.['x-litellm-response-cost']) {
+    const costHeader = resp.response.headers['x-litellm-response-cost'];
+    console.log(
+      `💰 LiteLLM createSummary Cost: $${costHeader} | Model: ${currentModel} | Tokens: ${resp.usage?.totalTokens || 'N/A'}`,
+    );
+
+    if (resp.usage) {
+      console.log(
+        `📊 LiteLLM createSummary Usage: Model=${currentModel}, Prompt=${resp.usage.promptTokens}, Completion=${resp.usage.completionTokens}, Total=${resp.usage.totalTokens}`,
+      );
+    }
+  }
 
   const response = resp.text;
 

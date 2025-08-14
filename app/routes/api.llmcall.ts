@@ -128,6 +128,21 @@ async function llmCallAction({ context, request }: ActionFunctionArgs) {
         maxTokens: dynamicMaxTokens,
         toolChoice: 'none',
       });
+
+      // Log LiteLLM cost information for non-streaming calls
+      if (provider.name === 'LiteLLM' && result.response?.headers?.['x-litellm-response-cost']) {
+        const costHeader = result.response.headers['x-litellm-response-cost'];
+        console.log(
+          `💰 LiteLLM Call Cost: $${costHeader} | Model: ${model} | Tokens: ${result.usage?.totalTokens || 'N/A'}`,
+        );
+
+        if (result.usage) {
+          console.log(
+            `📊 LiteLLM Usage: Model=${model}, Prompt=${result.usage.promptTokens}, Completion=${result.usage.completionTokens}, Total=${result.usage.totalTokens}`,
+          );
+        }
+      }
+
       logger.info(`Generated response`);
 
       return new Response(JSON.stringify(result), {

@@ -125,6 +125,11 @@ const SETTINGS_KEYS = {
   EVENT_LOGS: 'isEventLogsEnabled',
   PROMPT_ID: 'promptId',
   DEVELOPER_MODE: 'isDeveloperMode',
+  MODEL_DIFFERENTIATION: 'modelDifferentiationEnabled',
+  SUMMARY_MODEL: 'summaryModel',
+  SUMMARY_PROVIDER: 'summaryProvider',
+  CONTEXT_MODEL: 'contextModel',
+  CONTEXT_PROVIDER: 'contextProvider',
 } as const;
 
 // Initialize settings from localStorage or defaults
@@ -147,6 +152,14 @@ const getInitialSettings = () => {
     }
   };
 
+  const getStoredString = (key: string, defaultValue: string): string => {
+    if (!isBrowser) {
+      return defaultValue;
+    }
+
+    return localStorage.getItem(key) || defaultValue;
+  };
+
   return {
     latestBranch: getStoredBoolean(SETTINGS_KEYS.LATEST_BRANCH, false),
     autoSelectTemplate: getStoredBoolean(SETTINGS_KEYS.AUTO_SELECT_TEMPLATE, true),
@@ -154,6 +167,11 @@ const getInitialSettings = () => {
     eventLogs: getStoredBoolean(SETTINGS_KEYS.EVENT_LOGS, true),
     promptId: isBrowser ? localStorage.getItem(SETTINGS_KEYS.PROMPT_ID) || 'default' : 'default',
     developerMode: getStoredBoolean(SETTINGS_KEYS.DEVELOPER_MODE, false),
+    modelDifferentiation: getStoredBoolean(SETTINGS_KEYS.MODEL_DIFFERENTIATION, false),
+    summaryModel: getStoredString(SETTINGS_KEYS.SUMMARY_MODEL, 'claude-3-haiku-20240307'),
+    summaryProvider: getStoredString(SETTINGS_KEYS.SUMMARY_PROVIDER, 'Anthropic'),
+    contextModel: getStoredString(SETTINGS_KEYS.CONTEXT_MODEL, 'claude-3-haiku-20240307'),
+    contextProvider: getStoredString(SETTINGS_KEYS.CONTEXT_PROVIDER, 'Anthropic'),
   };
 };
 
@@ -165,6 +183,11 @@ export const autoSelectStarterTemplate = atom<boolean>(initialSettings.autoSelec
 export const enableContextOptimizationStore = atom<boolean>(initialSettings.contextOptimization);
 export const isEventLogsEnabled = atom<boolean>(initialSettings.eventLogs);
 export const promptStore = atom<string>(initialSettings.promptId);
+export const modelDifferentiationStore = atom<boolean>(initialSettings.modelDifferentiation);
+export const summaryModelStore = atom<string>(initialSettings.summaryModel);
+export const summaryProviderStore = atom<string>(initialSettings.summaryProvider);
+export const contextModelStore = atom<string>(initialSettings.contextModel);
+export const contextProviderStore = atom<string>(initialSettings.contextProvider);
 
 // Helper functions to update settings with persistence
 export const updateLatestBranch = (enabled: boolean) => {
@@ -190,6 +213,31 @@ export const updateEventLogs = (enabled: boolean) => {
 export const updatePromptId = (id: string) => {
   promptStore.set(id);
   localStorage.setItem(SETTINGS_KEYS.PROMPT_ID, id);
+};
+
+export const updateModelDifferentiation = (enabled: boolean) => {
+  modelDifferentiationStore.set(enabled);
+  localStorage.setItem(SETTINGS_KEYS.MODEL_DIFFERENTIATION, JSON.stringify(enabled));
+};
+
+export const updateSummaryModel = (model: string) => {
+  summaryModelStore.set(model);
+  localStorage.setItem(SETTINGS_KEYS.SUMMARY_MODEL, model);
+};
+
+export const updateSummaryProvider = (provider: string) => {
+  summaryProviderStore.set(provider);
+  localStorage.setItem(SETTINGS_KEYS.SUMMARY_PROVIDER, provider);
+};
+
+export const updateContextModel = (model: string) => {
+  contextModelStore.set(model);
+  localStorage.setItem(SETTINGS_KEYS.CONTEXT_MODEL, model);
+};
+
+export const updateContextProvider = (provider: string) => {
+  contextProviderStore.set(provider);
+  localStorage.setItem(SETTINGS_KEYS.CONTEXT_PROVIDER, provider);
 };
 
 // Initialize tab configuration from localStorage or defaults

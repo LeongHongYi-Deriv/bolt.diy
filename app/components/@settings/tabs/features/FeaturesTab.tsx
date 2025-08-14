@@ -1,11 +1,14 @@
 // Remove unused imports
-import React, { memo, useCallback } from 'react';
+import React, { memo, useCallback, useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Switch } from '~/components/ui/Switch';
 import { useSettings } from '~/lib/hooks/useSettings';
 import { classNames } from '~/utils/classNames';
 import { toast } from 'react-toastify';
 import { PromptLibrary } from '~/lib/common/prompt-library';
+import { PROVIDER_LIST } from '~/utils/constants';
+import type { ModelInfo } from '~/lib/modules/llm/types';
+import type { ProviderInfo } from '~/types/model';
 
 interface FeatureToggle {
   id: string;
@@ -117,7 +120,33 @@ export default function FeaturesTab() {
     setEventLogs,
     setPromptId,
     promptId,
+    modelDifferentiation,
+    setModelDifferentiation,
+    summaryModel,
+    setSummaryModel,
+    summaryProvider,
+    setSummaryProvider,
+    contextModel,
+    setContextModel,
+    contextProvider,
+    setContextProvider,
   } = useSettings();
+
+  const [modelList, setModelList] = useState<ModelInfo[]>([]);
+  const [providerList] = useState<ProviderInfo[]>(PROVIDER_LIST as ProviderInfo[]);
+
+  // Fetch available models
+  useEffect(() => {
+    fetch('/api/models')
+      .then((response) => response.json())
+      .then((data) => {
+        const typedData = data as { modelList: ModelInfo[] };
+        setModelList(typedData.modelList);
+      })
+      .catch((error) => {
+        console.error('Error fetching models:', error);
+      });
+  }, []);
 
   // Enable features by default on first load
   React.useEffect(() => {
@@ -170,6 +199,12 @@ export default function FeaturesTab() {
           break;
         }
 
+        case 'modelDifferentiation': {
+          setModelDifferentiation(enabled);
+          toast.success(`Model differentiation ${enabled ? 'enabled' : 'disabled'}`);
+          break;
+        }
+
         default:
           break;
       }
@@ -210,6 +245,15 @@ export default function FeaturesTab() {
         icon: 'i-ph:list-bullets',
         enabled: eventLogs,
         tooltip: 'Enabled by default to record detailed logs of system events and user actions',
+      },
+      {
+        id: 'modelDifferentiation',
+        title: 'Model Differentiation',
+        description: 'Use different models for different tasks to optimize cost and performance',
+        icon: 'i-ph:brain',
+        enabled: modelDifferentiation,
+        tooltip: 'Allows you to select specific models for chat summarization and context selection tasks',
+        beta: true,
       },
     ],
     beta: [],
@@ -290,6 +334,177 @@ export default function FeaturesTab() {
           </select>
         </div>
       </motion.div>
+
+      {modelDifferentiation && (
+        <motion.div
+          className="flex flex-col gap-6"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.4 }}
+        >
+          <div className="flex items-center gap-3">
+            <div className="i-ph:robot text-xl text-purple-500" />
+            <div>
+              <h3 className="text-lg font-medium text-bolt-elements-textPrimary">Model Configuration</h3>
+              <p className="text-sm text-bolt-elements-textSecondary">
+                Configure specific models for different AI tasks to optimize cost and performance
+              </p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Chat History Summarizer */}
+            <motion.div
+              className={classNames(
+                'bg-bolt-elements-background-depth-2',
+                'hover:bg-bolt-elements-background-depth-3',
+                'transition-colors duration-200',
+                'rounded-lg p-4',
+              )}
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.5 }}
+            >
+              <div className="flex items-center gap-3 mb-4">
+                <div className="i-ph:chat-circle text-lg text-blue-500" />
+                <div>
+                  <h4 className="font-medium text-bolt-elements-textPrimary">Chat History Summarizer</h4>
+                  <p className="text-xs text-bolt-elements-textSecondary">
+                    Model used for summarizing chat history to reduce token usage
+                  </p>
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                <div>
+                  <label className="block text-xs font-medium text-bolt-elements-textSecondary mb-1">Provider</label>
+                  <select
+                    value={summaryProvider}
+                    onChange={(e) => {
+                      setSummaryProvider(e.target.value);
+                      toast.success('Summary provider updated');
+                    }}
+                    className={classNames(
+                      'w-full p-2 rounded-lg text-sm',
+                      'bg-bolt-elements-background-depth-3 border border-bolt-elements-borderColor',
+                      'text-bolt-elements-textPrimary',
+                      'focus:outline-none focus:ring-2 focus:ring-blue-500/30',
+                      'transition-all duration-200',
+                    )}
+                  >
+                    {providerList.map((provider) => (
+                      <option key={provider.name} value={provider.name}>
+                        {provider.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-medium text-bolt-elements-textSecondary mb-1">Model</label>
+                  <select
+                    value={summaryModel}
+                    onChange={(e) => {
+                      setSummaryModel(e.target.value);
+                      toast.success('Summary model updated');
+                    }}
+                    className={classNames(
+                      'w-full p-2 rounded-lg text-sm',
+                      'bg-bolt-elements-background-depth-3 border border-bolt-elements-borderColor',
+                      'text-bolt-elements-textPrimary',
+                      'focus:outline-none focus:ring-2 focus:ring-blue-500/30',
+                      'transition-all duration-200',
+                    )}
+                  >
+                    {modelList
+                      .filter((model) => model.provider === summaryProvider)
+                      .map((model) => (
+                        <option key={model.name} value={model.name}>
+                          {model.label || model.name}
+                        </option>
+                      ))}
+                  </select>
+                </div>
+              </div>
+            </motion.div>
+
+            {/* Context Selection */}
+            <motion.div
+              className={classNames(
+                'bg-bolt-elements-background-depth-2',
+                'hover:bg-bolt-elements-background-depth-3',
+                'transition-colors duration-200',
+                'rounded-lg p-4',
+              )}
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.6 }}
+            >
+              <div className="flex items-center gap-3 mb-4">
+                <div className="i-ph:files text-lg text-green-500" />
+                <div>
+                  <h4 className="font-medium text-bolt-elements-textPrimary">Context Selection</h4>
+                  <p className="text-xs text-bolt-elements-textSecondary">
+                    Model used for selecting relevant files and context
+                  </p>
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                <div>
+                  <label className="block text-xs font-medium text-bolt-elements-textSecondary mb-1">Provider</label>
+                  <select
+                    value={contextProvider}
+                    onChange={(e) => {
+                      setContextProvider(e.target.value);
+                      toast.success('Context provider updated');
+                    }}
+                    className={classNames(
+                      'w-full p-2 rounded-lg text-sm',
+                      'bg-bolt-elements-background-depth-3 border border-bolt-elements-borderColor',
+                      'text-bolt-elements-textPrimary',
+                      'focus:outline-none focus:ring-2 focus:ring-green-500/30',
+                      'transition-all duration-200',
+                    )}
+                  >
+                    {providerList.map((provider) => (
+                      <option key={provider.name} value={provider.name}>
+                        {provider.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-medium text-bolt-elements-textSecondary mb-1">Model</label>
+                  <select
+                    value={contextModel}
+                    onChange={(e) => {
+                      setContextModel(e.target.value);
+                      toast.success('Context model updated');
+                    }}
+                    className={classNames(
+                      'w-full p-2 rounded-lg text-sm',
+                      'bg-bolt-elements-background-depth-3 border border-bolt-elements-borderColor',
+                      'text-bolt-elements-textPrimary',
+                      'focus:outline-none focus:ring-2 focus:ring-green-500/30',
+                      'transition-all duration-200',
+                    )}
+                  >
+                    {modelList
+                      .filter((model) => model.provider === contextProvider)
+                      .map((model) => (
+                        <option key={model.name} value={model.name}>
+                          {model.label || model.name}
+                        </option>
+                      ))}
+                  </select>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        </motion.div>
+      )}
     </div>
   );
 }
