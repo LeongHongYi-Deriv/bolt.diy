@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { ClientOnly } from 'remix-utils/client-only';
 import { classNames } from '~/utils/classNames';
 import { PROVIDER_LIST } from '~/utils/constants';
@@ -19,6 +19,7 @@ import { ColorSchemeDialog } from '~/components/ui/ColorSchemeDialog';
 import type { DesignScheme } from '~/types/design-scheme';
 import type { ElementInfo } from '~/components/workbench/Inspector';
 import { McpTools } from './MCPTools';
+import { AddPageDialog } from './AddPageDialog';
 
 interface ChatBoxProps {
   isModelSettingsCollapsed: boolean;
@@ -64,6 +65,23 @@ interface ChatBoxProps {
 }
 
 export const ChatBox: React.FC<ChatBoxProps> = (props) => {
+  const [isAddPageDialogOpen, setIsAddPageDialogOpen] = useState(false);
+
+  const handleAddPageSubmit = (formattedText: string) => {
+    // Append the formatted text to the current input
+    const newInput = props.input ? `${props.input}\n\n${formattedText}` : formattedText;
+
+    // Simulate an event to update the input
+    const syntheticEvent = {
+      target: { value: newInput },
+    } as React.ChangeEvent<HTMLTextAreaElement>;
+
+    props.handleInputChange?.(syntheticEvent);
+  };
+
+  // Check if there are any existing files to determine button text
+  const hasExistingFiles = props.chatStarted;
+
   return (
     <div
       className={classNames(
@@ -262,6 +280,13 @@ export const ChatBox: React.FC<ChatBoxProps> = (props) => {
           <div className="flex gap-1 items-center">
             <ColorSchemeDialog designScheme={props.designScheme} setDesignScheme={props.setDesignScheme} />
             <McpTools />
+            <IconButton
+              title={hasExistingFiles ? 'Add Another Page' : 'Create a New Page'}
+              className="transition-all"
+              onClick={() => setIsAddPageDialogOpen(true)}
+            >
+              <div className="i-ph:plus-circle text-xl"></div>
+            </IconButton>
             <IconButton title="Upload file" className="transition-all" onClick={() => props.handleFileUpload()}>
               <div className="i-ph:paperclip text-xl"></div>
             </IconButton>
@@ -329,6 +354,11 @@ export const ChatBox: React.FC<ChatBoxProps> = (props) => {
           <ExpoQrModal open={props.qrModalOpen} onClose={() => props.setQrModalOpen(false)} />
         </div>
       </div>
+      <AddPageDialog
+        open={isAddPageDialogOpen}
+        onClose={() => setIsAddPageDialogOpen(false)}
+        onAddPage={handleAddPageSubmit}
+      />
     </div>
   );
 };

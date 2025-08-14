@@ -76,6 +76,19 @@ function chrome129IssuePlugin() {
     name: 'chrome129IssuePlugin',
     configureServer(server: ViteDevServer) {
       server.middlewares.use((req, res, next) => {
+        // Filter out webcontainer URLs and DevTools requests that shouldn't be routed
+        if (
+          req.url?.includes('local-credentialless.webcontainer-api.io') ||
+          req.url?.includes('/https://') ||
+          req.url?.includes('/.well-known/appspecific/com.chrome.devtools.json')
+        ) {
+          console.log('Filtering out problematic URL:', req.url);
+          res.statusCode = 404;
+          res.end('Not Found');
+
+          return;
+        }
+
         const raw = req.headers['user-agent']?.match(/Chrom(e|ium)\/([0-9]+)\./);
 
         if (raw) {
