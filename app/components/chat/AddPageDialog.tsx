@@ -21,6 +21,33 @@ interface PageOption {
   description: string;
 }
 
+/**
+ * Preprocessing function for design requirements input
+ * Currently returns the input unchanged, but can be extended for:
+ * - JSON validation and parsing
+ * - Design pattern recognition
+ * - Template expansion
+ * - Input sanitization
+ * - AI-powered enhancement
+ */
+const preprocessingFunction = (designInput: string): string => {
+  /*
+   * Parse JSON string and remove the "imageData" key.
+   * Returns the pretty-printed JSON string.
+   */
+  try {
+    const obj = JSON.parse(designInput);
+    delete obj.imageData;
+
+    const prettyJson = JSON.stringify(obj, null, 2);
+    console.log('Preprocessed JSON');
+
+    return prettyJson;
+  } catch (e) {
+    throw new Error('Invalid JSON input: ' + (e as Error).message);
+  }
+};
+
 export const AddPageDialog: React.FC<AddPageDialogProps> = ({ open, onClose, onAddPage }) => {
   const [selectedPage, setSelectedPage] = useState<PageOption | null>(null);
   const [screenName, setScreenName] = useState('');
@@ -91,6 +118,7 @@ export const AddPageDialog: React.FC<AddPageDialogProps> = ({ open, onClose, onA
       return;
     }
 
+    const processedDesignRequirements = preprocessingFunction(designRequirements);
     const screenId = generateScreenId(screenName);
     const navigationTrigger = selectedPage ? actionToNextPage : undefined;
     const parentScreen = selectedPage?.id;
@@ -108,7 +136,7 @@ SCREEN CONFIGURATION:
 - Architecture: Self-contained, minimal dependencies
 
 DESIGN REQUIREMENTS:
-${designRequirements}
+${processedDesignRequirements}
 
 IMPLEMENTATION INSTRUCTIONS:
 Use the screen-based architecture for maximum modularity and minimal ripple effects. The screen should be completely self-contained with its own folder structure and dependencies.
@@ -147,7 +175,7 @@ SCREEN CONFIGURATION:
 - Architecture: Self-contained with parent-child relationship
 
 DESIGN REQUIREMENTS:
-${designRequirements}
+${processedDesignRequirements}
 
 IMPLEMENTATION INSTRUCTIONS:
 Create this screen using the modular architecture with minimal impact on existing functionality. The screen should integrate seamlessly with the existing ${selectedPage!.label} screen.
