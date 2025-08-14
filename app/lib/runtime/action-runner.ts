@@ -1,11 +1,22 @@
 import type { WebContainer } from '@webcontainer/api';
 import { path as nodePath } from '~/utils/path';
 import { atom, map, type MapStore } from 'nanostores';
-import type { ActionAlert, BoltAction, DeployAlert, FileHistory, SupabaseAction, SupabaseAlert } from '~/types/actions';
+import type {
+  ActionAlert,
+  BoltAction,
+  DeployAlert,
+  FileHistory,
+  SupabaseAction,
+  SupabaseAlert,
+  ScreenAction,
+  NavigationAction,
+  ComponentAction,
+} from '~/types/actions';
 import { createScopedLogger } from '~/utils/logger';
 import { unreachable } from '~/utils/unreachable';
 import type { ActionCallbackData } from './message-parser';
 import type { BoltShell } from '~/utils/shell';
+import { screenStore } from '~/lib/stores/screens';
 
 const logger = createScopedLogger('ActionRunner');
 
@@ -217,6 +228,18 @@ export class ActionRunner {
           await new Promise((resolve) => setTimeout(resolve, 2000));
 
           return;
+        }
+        case 'screen': {
+          await this.#runScreenAction(action);
+          break;
+        }
+        case 'navigation': {
+          await this.#runNavigationAction(action);
+          break;
+        }
+        case 'component': {
+          await this.#runComponentAction(action);
+          break;
         }
       }
 
@@ -548,5 +571,53 @@ export class ActionRunner {
       deployStatus: deployStatus as any,
       source: details?.source || 'netlify',
     });
+  }
+
+  async #runScreenAction(action: ActionState) {
+    if (action.type !== 'screen') {
+      unreachable('Expected screen action');
+    }
+
+    const screenAction = action as ScreenAction;
+
+    logger.debug('Creating screen:', screenAction.screenName);
+
+    // Add screen to the screen store
+    screenStore.addScreen(screenAction);
+
+    // The actual file creation will be handled by file actions in the same artifact
+    logger.info(`Screen '${screenAction.screenName}' registered successfully`);
+  }
+
+  async #runNavigationAction(action: ActionState) {
+    if (action.type !== 'navigation') {
+      unreachable('Expected navigation action');
+    }
+
+    const navigationAction = action as NavigationAction;
+
+    logger.debug('Creating navigation:', navigationAction.fromScreen, '->', navigationAction.toScreen);
+
+    // Add navigation to the screen store
+    screenStore.addNavigation(navigationAction);
+
+    logger.info(
+      `Navigation from '${navigationAction.fromScreen}' to '${navigationAction.toScreen}' registered successfully`,
+    );
+  }
+
+  async #runComponentAction(action: ActionState) {
+    if (action.type !== 'component') {
+      unreachable('Expected component action');
+    }
+
+    const componentAction = action as ComponentAction;
+
+    logger.debug('Creating component:', componentAction.componentName);
+
+    // Add component to the screen store
+    screenStore.addComponent(componentAction);
+
+    logger.info(`Component '${componentAction.componentName}' registered successfully`);
   }
 }

@@ -80,6 +80,16 @@ declare global {
   protocol.handle('http', async (req) => {
     console.log('Handling request for:', req.url);
 
+    // Filter out malformed webcontainer URLs that shouldn't be routed
+    if (
+      req.url.includes('local-credentialless.webcontainer-api.io') ||
+      req.url.match(/^https?:\/\/.*\.local-credentialless\.webcontainer-api\.io/) ||
+      req.url.includes('/https://')
+    ) {
+      console.log('Filtering out webcontainer URL:', req.url);
+      return new Response('Not Found', { status: 404 });
+    }
+
     if (isDev) {
       console.log('Dev mode: forwarding to vite server');
       return await fetch(req);
