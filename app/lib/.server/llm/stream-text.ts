@@ -22,6 +22,7 @@ export interface StreamingOptions extends Omit<Parameters<typeof _streamText>[0]
       supabaseUrl?: string;
     };
   };
+  temperature?: number;
 }
 
 const logger = createScopedLogger('stream-text');
@@ -48,6 +49,7 @@ export async function streamText(props: {
   messageSliceId?: number;
   chatMode?: 'discuss' | 'build';
   designScheme?: DesignScheme;
+  temperature?: number;
 }) {
   const {
     messages,
@@ -62,6 +64,7 @@ export async function streamText(props: {
     summary,
     chatMode,
     designScheme,
+    temperature,
   } = props;
   let currentModel = DEFAULT_MODEL;
   let currentProvider = DEFAULT_PROVIDER.name;
@@ -205,6 +208,7 @@ export async function streamText(props: {
     system: chatMode === 'build' ? systemPrompt : discussPrompt(),
     maxTokens: dynamicMaxTokens,
     messages: convertToCoreMessages(processedMessages as any),
+    temperature: temperature ?? 0,
     ...options,
   });
 }
